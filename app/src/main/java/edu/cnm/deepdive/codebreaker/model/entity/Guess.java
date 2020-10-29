@@ -3,6 +3,7 @@ package edu.cnm.deepdive.codebreaker.model.entity;
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.ForeignKey;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 import java.util.Date;
@@ -12,6 +13,13 @@ import java.util.UUID;
     indices = {
         @Index(value = {"guess_id"}, unique = true),
         @Index(value = {"game_id", "submitted"})
+    },
+    foreignKeys = {
+        @ForeignKey(
+            entity = Game.class,
+            parentColumns = "game_id", childColumns = "game_id",
+            onDelete = ForeignKey.CASCADE // if game is deleted, the guesses are deleted
+        )
     }
 )
 public class Guess {
