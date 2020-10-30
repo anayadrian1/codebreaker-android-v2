@@ -81,16 +81,19 @@ public class Match {
     this.state = state;
   }
 
-  @TypeConverter
-  public static Integer stateToInteger(State value) {
-    return (value != null ? value.ordinal() : null); // takes value and turns it into integer
-  }
-
-  @TypeConverter
-  public static State integerToState(Integer value) {
-    return (value != null ? State.values()[value] : null);
-  }
   public enum State {
     IN_PROGRESS, WON, LOST, FORFEITED;
+
+    @TypeConverter
+    public static Integer stateToInteger(State value) {
+      return (value != null ? value.ordinal() : null); // takes value and turns it into integer
+    }
+
+    @TypeConverter
+    public static State integerToState(Integer value) {
+      return (value != null ? State.values()[value] : null);
+    }
+
   }
+
 }
