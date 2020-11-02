@@ -9,6 +9,7 @@ import androidx.room.PrimaryKey;
 import java.util.Date;
 import java.util.UUID;
 
+@SuppressWarnings("NotNullFieldNotInitialized")
 @Entity(
     indices = {
         @Index(value = {"game_id"}, unique = true)
@@ -30,6 +31,10 @@ public class Game {
   @ColumnInfo(name = "game_key", typeAffinity = ColumnInfo.BLOB)
   private UUID gameKey;
 
+  @NonNull
+  private String pool;
+
+  @NonNull
   private String code;
 
   @ColumnInfo(name = "match_id", index = true)
@@ -58,11 +63,21 @@ public class Game {
     this.gameKey = gameKey;
   }
 
+  @NonNull
+  public String getPool() {
+    return pool;
+  }
+
+  public void setPool(@NonNull String pool) {
+    this.pool = pool;
+  }
+
+  @NonNull
   public String getCode() {
     return code;
   }
 
-  public void setCode(String code) {
+  public void setCode(@NonNull String code) {
     this.code = code;
   }
 
