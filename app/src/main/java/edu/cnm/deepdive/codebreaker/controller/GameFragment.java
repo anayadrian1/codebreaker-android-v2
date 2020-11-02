@@ -125,11 +125,31 @@ public class GameFragment extends Fragment {
     adapter = new GuessAdapter(activity, colorValueMap, colorLabelMap);
     viewModel = new ViewModelProvider(activity).get(MainViewModel.class);
     getLifecycle().addObserver(viewModel);
-    LifecycleOwner lifecycleOwner = getViewLifecycleOwner();
+    LifecycleOwner lifecycleOwner = getViewLifecycleOwner(); // subscription owner for a fragment
     viewModel.getGame().observe(lifecycleOwner, this::updateGameDisplay);
     viewModel.getSolved().observe(lifecycleOwner, solved ->
-        binding.guessControls.setVisibility(solved ? View.INVISIBLE : View.VISIBLE));
+        binding.guessControls.setVisibility(solved ? View.GONE : View.VISIBLE));
     viewModel.getGuesses().observe(lifecycleOwner, this::updateGuessList);
+    viewModel.getGuess().observe(lifecycleOwner, (guess) -> {
+      if (guess == null) {
+        for(Spinner spinner : spinners) {
+          spinner.setSelection(0);
+        }
+      } else {
+        char[] characters = guess.getText().toCharArray();
+        //spinnerLoop: labels for if i want to break;
+        for (int i = 0; i < characters.length; i++) {
+          char c = characters[i];
+          //itemLoop:
+          for (int position = 0; position < codeCharacters.length; position++) {
+            if (codeCharacters[position].equals(c)) {
+              spinners[i].setSelection(position);
+              break;
+            }
+          }
+        }
+      }
+    }); //lifecycle owner owns the subscription
   }
 
   private void updateGameDisplay(Game game) {

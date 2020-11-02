@@ -134,7 +134,7 @@ public class GameRepository {
     }
     String badCharacters =
         text.replaceAll(String.format(VALID_CHARACTER_PATTERN_FORMAT, game.getPool()), ""); //takes pool characters and substitutes in format, replaces all valid characters with ""
-    if (badCharacters.isEmpty()) {
+    if (!badCharacters.isEmpty()) {
       throw new IllegalArgumentException(
           String.format(ILLEGAL_CHARACTER_FORMAT, game.getPool(), badCharacters));
     }
