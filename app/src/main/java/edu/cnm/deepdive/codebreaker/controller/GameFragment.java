@@ -21,9 +21,11 @@ import edu.cnm.deepdive.codebreaker.R;
 import edu.cnm.deepdive.codebreaker.adapter.CodeCharacterAdapter;
 import edu.cnm.deepdive.codebreaker.adapter.GuessAdapter;
 import edu.cnm.deepdive.codebreaker.databinding.FragmentGameBinding;
-import edu.cnm.deepdive.codebreaker.model.Game;
+import edu.cnm.deepdive.codebreaker.model.entity.Game;
+import edu.cnm.deepdive.codebreaker.model.entity.Guess;
 import edu.cnm.deepdive.codebreaker.viewmodel.MainViewModel;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class GameFragment extends Fragment {
@@ -74,9 +76,6 @@ public class GameFragment extends Fragment {
       case R.id.new_game:
         startGame();
         break;
-      case R.id.restart_game:
-        restartGame();
-        break;
       case R.id.settings:
         navController.navigate(R.id.action_navigation_game_to_navigation_settings);
         break;
@@ -126,21 +125,46 @@ public class GameFragment extends Fragment {
     adapter = new GuessAdapter(activity, colorValueMap, colorLabelMap);
     viewModel = new ViewModelProvider(activity).get(MainViewModel.class);
     getLifecycle().addObserver(viewModel);
-    LifecycleOwner lifecycleOwner = getViewLifecycleOwner();
+    LifecycleOwner lifecycleOwner = getViewLifecycleOwner(); // subscription owner for a fragment
     viewModel.getGame().observe(lifecycleOwner, this::updateGameDisplay);
     viewModel.getSolved().observe(lifecycleOwner, solved ->
-        binding.guessControls.setVisibility(solved ? View.INVISIBLE : View.VISIBLE));
+        binding.guessControls.setVisibility(solved ? View.GONE : View.VISIBLE));
+    viewModel.getGuesses().observe(lifecycleOwner, this::updateGuessList);
+    viewModel.getGuess().observe(lifecycleOwner, (guess) -> {
+      if (guess == null) {
+        for(Spinner spinner : spinners) {
+          spinner.setSelection(0);
+        }
+      } else {
+        char[] characters = guess.getText().toCharArray();
+        //spinnerLoop: labels for if i want to break;
+        for (int i = 0; i < characters.length; i++) {
+          char c = characters[i];
+          //itemLoop:
+          for (int position = 0; position < codeCharacters.length; position++) {
+            if (codeCharacters[position].equals(c)) {
+              spinners[i].setSelection(position);
+              break;
+            }
+          }
+        }
+      }
+    }); //lifecycle owner owns the subscription
   }
 
   private void updateGameDisplay(Game game) {
-    adapter.clear();
-    adapter.addAll(game.getGuesses());
-    binding.guessList.setAdapter(adapter);
-    binding.guessList.setSelection(adapter.getCount() - 1);
-    codeLength = game.getLength();
+    codeLength = game.getCodeLength();
     for (int i = 0; i < spinners.length; i++) {
       spinners[i].setVisibility((i < codeLength) ? View.VISIBLE : View.GONE);
     }
+  }
+
+  private void updateGuessList(List<Guess> guesses) {
+    adapter.clear();
+    adapter.addAll(guesses);
+    binding.guessList.setAdapter(adapter);
+    binding.guessList.setSelection(adapter.getCount() - 1);
+
   }
 
   private void recordGuess() {
@@ -155,9 +179,6 @@ public class GameFragment extends Fragment {
     viewModel.startGame();
   }
 
-  private void restartGame() {
-    viewModel.restartGame();
-  }
 
   private static Map<Character, Integer> buildColorMap(char[] chars, int[] values) {
     Map<Character, Integer> colorMap = new HashMap<>();
