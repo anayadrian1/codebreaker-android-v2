@@ -31,14 +31,14 @@ public class Game {
   @ColumnInfo(name = "game_key", typeAffinity = ColumnInfo.BLOB)
   private UUID gameKey;
 
+  @ColumnInfo(name = "match_id", index = true)
+  private Long matchId; // many to one with optional, foreign key must be nullable
+
   @NonNull
   private String pool;
 
-  @NonNull
   private String code;
 
-  @ColumnInfo(name = "match_id", index = true)
-  private Long matchId; // many to one with optional, foreign key must be nullable
 
   @ColumnInfo(name = "code_length", index = true)
   private int codeLength;
@@ -72,12 +72,11 @@ public class Game {
     this.pool = pool;
   }
 
-  @NonNull
   public String getCode() {
     return code;
   }
 
-  public void setCode(@NonNull String code) {
+  public void setCode(String code) {
     this.code = code;
   }
 

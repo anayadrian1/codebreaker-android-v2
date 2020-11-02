@@ -4,6 +4,7 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import edu.cnm.deepdive.codebreaker.model.dao.GameDao;
+import edu.cnm.deepdive.codebreaker.model.dao.GuessDao;
 import edu.cnm.deepdive.codebreaker.model.dao.ScoreDao;
 import edu.cnm.deepdive.codebreaker.model.entity.Game;
 import edu.cnm.deepdive.codebreaker.model.entity.Guess;
@@ -26,15 +27,18 @@ public class GameRepository {
   private static final String ILLEGAL_CHARACTER_FORMAT =
       "Guess includes invalid characters: pool is \"%1$s\"; guess includes \"%2$s\".";
   private static final String VALID_CHARACTER_PATTERN_FORMAT = "[%s]";
+
   private final Context context;
   private final ScoreDao scoreDao;
   private final GameDao gameDao;
+  private final GuessDao guessDao;
 
   public GameRepository(Context context) {
     this.context = context;
     CodebreakerDatabase database = CodebreakerDatabase.getInstance();
     scoreDao = database.getScoreDao();
     gameDao = database.getGameDao();
+    guessDao = database.getGuessDao();
   }
 
   public Single<Game> newGame(String pool, int codeLength, Random rng) {
@@ -49,23 +53,33 @@ public class GameRepository {
   }
 
   public Single<Guess> guess(Game game, String text) {
+    // TODO Check if game is a solitaire game, or a game from a match
     return Single.fromCallable(() -> {
       validateGuess(game, text);
       // map all characters in a guess and put them in a map where every character is mapped to where the character occurs in the text
       Map<Character, Set<Integer>> letterMap = getLetterMap(text);
       char[] work = game.getCode().toCharArray();
-      int correct = 0;
-      for (int i = 0; i < work.length; i++) { // if using charAt, use a character array instead
-        char letter = work[i];
-        Set<Integer> positions = letterMap.getOrDefault(letter, Collections.emptySet());
-        if (positions.contains(i)) {
-          correct++;
-          positions.remove(i);
-          work[i] = 0;
-        }
-      }
-      int close = 0;
-      for (char letter : work) { // for each letter in work do...
+      Guess guess = new Guess();
+      guess.setGameId(game.getId());
+      guess.setText(text);
+      guess.setCorrect(getCorrect(letterMap, work));
+      guess.setClose(getClose(letterMap, work));
+      return guess;
+    })
+        .subscribeOn(Schedulers.computation())
+        .flatMap((guess) -> guessDao.insert(guess)
+            .map((id) -> {
+              guess.setId(id);
+              return guess;
+            })
+        )
+        .subscribeOn(Schedulers.io());
+  }
+
+  private int getClose(Map<Character, Set<Integer>> letterMap, char[] work) {
+    int close = 0;
+    for (char letter : work) { // for each letter in work do...
+      if (letter != 0) {
         Set<Integer> positions = letterMap.getOrDefault(letter, Collections.emptySet());
         if (!positions.isEmpty()) {
           close++;
@@ -74,9 +88,22 @@ public class GameRepository {
           iterator.remove();
         }
       }
-      // TODO Create Guess instance using text, correct, & close.
-    })
-        .subscribeOn(Schedulers.computation());
+    }
+    return close;
+  }
+
+  private int getCorrect(Map<Character, Set<Integer>> letterMap, char[] work) {
+    int correct = 0;
+    for (int i = 0; i < work.length; i++) { // if using charAt, use a character array instead
+      char letter = work[i];
+      Set<Integer> positions = letterMap.getOrDefault(letter, Collections.emptySet());
+      if (positions.contains(i)) {
+        correct++;
+        positions.remove(i);
+        work[i] = 0;
+      }
+    }
+    return correct;
   }
 
   @NonNull
@@ -92,6 +119,14 @@ public class GameRepository {
     return letterMap;
   }
 
+  public LiveData<List<Guess>> getGuesses(Game game) {
+    return guessDao.selectForGame(game.getId());
+  }
+
+  public LiveData<List<ScoreSummary>> getSummaries() {
+    return scoreDao.selectSummaries();
+  }
+
   private void validateGuess(Game game, String text) {
     if (text.length() != game.getCodeLength()) {
       throw new IllegalArgumentException(
@@ -103,10 +138,6 @@ public class GameRepository {
       throw new IllegalArgumentException(
           String.format(ILLEGAL_CHARACTER_FORMAT, game.getPool(), badCharacters));
     }
-  }
-
-  public LiveData<List<ScoreSummary>> getSummaries() {
-    return scoreDao.selectSummaries();
   }
 
   @NonNull

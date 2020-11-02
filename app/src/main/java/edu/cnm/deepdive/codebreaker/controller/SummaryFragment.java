@@ -31,7 +31,7 @@ public class SummaryFragment extends Fragment {
     FragmentActivity activity = getActivity();
     //noinspection ConstantConditions
     MainViewModel viewModel = new ViewModelProvider(activity).get(MainViewModel.class);
-    viewModel.getSumamries().observe(getViewLifecycleOwner(), (summaries) -> {
+    viewModel.getSummaries().observe(getViewLifecycleOwner(), (summaries) -> {
       ScoreSummaryAdapter adapter = new ScoreSummaryAdapter(activity, summaries); // an activity is a context, returns same activity as getContext()
       binding.summaryList.setAdapter(adapter);
     });
