@@ -7,7 +7,7 @@ import java.util.Date;
 
 @SuppressWarnings("NotNullFieldNotInitialized")
 @DatabaseView("SELECT "
-    + "gm.game_id, gm.pool, gm.code, gm.code_length, gm.started, s.submitted "
+    + "gm.game_id, gm.pool, gm.code, gm.code_length, gm.started, s.submitted, gs.guess_count "
     + "FROM Game AS gm "
     + "INNER JOIN Guess AS s ON s.game_id = gm.game_id AND s.correct = gm.code_length "
     + "INNER JOIN (SELECT game_id, COUNT(*) AS guess_count FROM Guess GROUP BY game_id) AS gs ON gs.game_id = gm.game_id")
