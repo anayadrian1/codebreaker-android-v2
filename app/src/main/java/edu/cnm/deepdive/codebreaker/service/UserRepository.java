@@ -1,10 +1,13 @@
 package edu.cnm.deepdive.codebreaker.service;
 
 import android.content.Context;
+import androidx.annotation.NonNull;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import edu.cnm.deepdive.codebreaker.model.dao.UserDao;
 import edu.cnm.deepdive.codebreaker.model.entity.User;
 import io.reactivex.Single;
 import io.reactivex.schedulers.Schedulers;
+import java.util.Date;
 
 public class UserRepository {
 
@@ -20,27 +23,41 @@ public class UserRepository {
     signInService = GoogleSignInService.getInstance();
   }
 
-  public Single<User> getCurrentUser() {
-    return Single.fromCallable(signInService::getAccount) // get account from google
-        .flatMap((account) -> // map an account by daisy chaining the webservice by invoking the token for the user
-            webService.getProfile(getBearerToken(account.getIdToken()))
-            .flatMap((user) -> // map to single
-                userDao.selectByOauthKey(account.getId())
-                    .switchIfEmpty(
-                        userDao.insert(user)
-                            .map((id) -> {
-                              user.setId(id);
-                              return user;
-                            })
-                    ) // if theres not a user then create
-            )
-            .flatMap((user) ->
-                userDao.update(user)
-                .map((numRecords) -> user)
-            )
+  @SuppressWarnings("ConstantConditions")
+  public Single<User> createUser(@NonNull GoogleSignInAccount account) {
+    return Single.fromCallable(() -> {
+      User user = new User();
+      user.setDisplayName(account.getDisplayName());
+      user.setCreated(new Date());
+      user.setOauthKey(account.getId());
+      return user;
+    })
+        .flatMap((user) ->
+            userDao.insert(user)
+                .map((id) -> {
+                  if (id > 0) {
+                    user.setId(id);
+                  }
+                  return user;
+                })
         )
-    .subscribeOn(Schedulers.io()); // oauthkey from account give us if there is a user
-
+        .subscribeOn(Schedulers.io());
+  }
+  public Single<User> getServerUserProfile() {
+    return signInService.refresh()
+        .flatMap((account) ->
+            webService.getProfile(getBearerToken(account.getIdToken()))
+                .subscribeOn(Schedulers.io())
+                .flatMap((user) ->
+                    userDao.selectByOauthKey(account.getId())
+                        .flatMap((localUser) -> {
+                          localUser.setDisplayName(user.getDisplayName());
+                          return userDao.update(localUser) // take the user and update it to the database
+                              .map((count) -> localUser);
+                        })
+                )
+        )
+        .subscribeOn(Schedulers.io());
   }
 
   private String getBearerToken(String idToken) {
