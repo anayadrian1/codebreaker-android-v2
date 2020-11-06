@@ -48,7 +48,8 @@ public class MainViewModel extends AndroidViewModel implements LifecycleObserver
     game = new MutableLiveData<>();
     guess = new MutableLiveData<>();
     solved = new MutableLiveData<>();
-    guesses = Transformations.switchMap(game, repository::getGuesses); // map transforms one result to another, switch is saying use this map to trigger
+    guesses = Transformations.switchMap(game,
+        repository::getGuesses); // map transforms one result to another, switch is saying use this map to trigger
     throwable = new MutableLiveData<>();
     rng = new SecureRandom();
     codeLengthPrefKey = application.getString(R.string.code_length_pref_key);
@@ -57,10 +58,17 @@ public class MainViewModel extends AndroidViewModel implements LifecycleObserver
     preferences = PreferenceManager.getDefaultSharedPreferences(application);
     pending = new CompositeDisposable();
     startGame();
-    userRepository.getServerUserProfile()
-        .subscribe(
-            (user) -> Log.d(getClass().getSimpleName(), user.getDisplayName())
-        );
+    testRoundTrip();
+  }
+
+  private void testRoundTrip() {
+    pending.add(
+        userRepository.getServerUserProfile()
+            .subscribe(
+                (user) -> Log.d(getClass().getSimpleName(), user.getDisplayName()),
+                throwable::postValue
+            )
+    );
   }
 
   public LiveData<Game> getGame() {

@@ -44,12 +44,12 @@ public class GameRepository {
   public Single<Game> newGame(String pool, int codeLength, Random rng) {
     return Single.fromCallable(() -> createGame(pool, codeLength, rng))
         .subscribeOn(Schedulers.computation())
+        .observeOn(Schedulers.io())
         .flatMap((game) -> gameDao.insert(game) // transforms the result of one task and daisy chain a task to the end of the that; mapping result to task
             .map((id) -> { // map result of insert task to game object, set the id, and map it.
               game.setId(id);
               return game;})
-        )
-        .subscribeOn(Schedulers.io()); // do the above on an io thread
+        );
   }
 
   public Single<Guess> guess(Game game, String text) {
@@ -67,13 +67,13 @@ public class GameRepository {
       return guess;
     })
         .subscribeOn(Schedulers.computation())
+        .observeOn(Schedulers.io())
         .flatMap((guess) -> guessDao.insert(guess)
             .map((id) -> {
               guess.setId(id);
               return guess;
             })
-        )
-        .subscribeOn(Schedulers.io());
+        );
   }
 
   private int getClose(Map<Character, Set<Integer>> letterMap, char[] work) {

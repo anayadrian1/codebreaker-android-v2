@@ -43,21 +43,19 @@ public class UserRepository {
         )
         .subscribeOn(Schedulers.io());
   }
+
   public Single<User> getServerUserProfile() {
     return signInService.refresh()
-        .flatMap((account) ->
-            webService.getProfile(getBearerToken(account.getIdToken()))
-                .subscribeOn(Schedulers.io())
-                .flatMap((user) ->
-                    userDao.selectByOauthKey(account.getId())
-                        .flatMap((localUser) -> {
-                          localUser.setDisplayName(user.getDisplayName());
-                          return userDao.update(localUser) // take the user and update it to the database
-                              .map((count) -> localUser);
-                        })
-                )
-        )
-        .subscribeOn(Schedulers.io());
+        .observeOn(Schedulers.io())
+        .flatMap((account) -> webService.getProfile(getBearerToken(account.getIdToken()))
+            .flatMap((user) -> userDao.selectByOauthKey(account.getId())
+                .flatMap((localUser) -> {
+                  localUser.setDisplayName(user.getDisplayName());
+                  return userDao.update(localUser) // take the user and update it to the database
+                      .map((count) -> localUser);
+                })
+            )
+        );
   }
 
   private String getBearerToken(String idToken) {
