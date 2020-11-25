@@ -37,7 +37,9 @@
   <string name="menu_slideshow">Slideshow</string>
   <string name="title_summary">Summary</string>
   <string name="title_current_game">Current game</string>
-  <string name="title_matches">Matches</string>
+  <string name="title_current_matches">Current matches</string>
+  <string name="title_available_matches">Available matches</string>
+  <string name="title_closed_matches">Closed matches</string>
   <string-array name="color_labels">
     <item>Red</item>
     <item>Orange</item>
